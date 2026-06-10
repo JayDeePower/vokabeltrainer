@@ -30,7 +30,7 @@ button:hover{background:#3a3a50}
 .qcard{background:#2a2a3e;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:2rem;text-align:center;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;margin-bottom:1rem}
 .qword{font-size:28px;font-weight:600;color:#fff;word-break:break-word}
 .qhint{font-size:13px;color:#888}
-.qans{font-size:18px;color:#e0e0e0;font-weight:600;word-break:break-word}
+.qans{font-size:28px;color:#fff;font-weight:700;word-break:break-word}
 .qctl{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:1rem}
 .bok{background:#EAF3DE;color:#27500A;border:1px solid #C0DD97;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600}
 .bok:hover{background:#C0DD97}
@@ -526,6 +526,8 @@ function showC(){
     } else {
       document.getElementById('qcard-main').style.display='flex';
       document.getElementById('qcard-audio').style.display='none';
+      document.getElementById('cword').style.fontSize='';
+      document.getElementById('cword').style.color='';
       document.getElementById('cctl-audio').style.display='none';
       document.getElementById('chint').textContent=d==='de'?'Deutsch → Englisch':'Englisch → Deutsch';
       document.getElementById('cword').textContent=d==='de'?e.de:e.en;
@@ -540,8 +542,27 @@ function showC(){
       if(d==='en'){tb.style.display='inline-flex';tb.dataset.w=e.en;}else tb.style.display='none';
     }
   } else if(mode==='gap'){
-    document.getElementById('gsen').innerHTML=(e.gap||e.en).replace('___','<input class="ginput" id="ginp" placeholder="?" autocomplete="off" onkeydown="if(event.key===\'Enter\')checkG()">');
+    // Use example sentence with keyword as gap, or fall back to en field
+    const e=queue[qi%queue.length];
+    let gapSentence='';
+    let answer=e.en;
+    if(e.example){
+      const base=e.en.replace(/^to\s+/i,'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      const pattern=new RegExp('('+base+'(?:s|es|ed|ing|d)?)', 'i');
+      if(pattern.test(e.example)){
+        gapSentence=e.example.replace(pattern,'___');
+        answer=e.example.match(pattern)[1];
+      } else {
+        gapSentence=e.example+'\n('+e.en+')';
+      }
+    } else if(e.gap){
+      gapSentence=e.gap;
+    } else {
+      gapSentence='___ = '+e.de;
+    }
+    document.getElementById('gsen').innerHTML=gapSentence.replace('___','<input class="ginput" id="ginp" placeholder="?" autocomplete="off" onkeydown="if(event.key===\'Enter\')checkG()">');
     document.getElementById('gfb').textContent='';
+    document.getElementById('gfb').dataset.answer=answer;
     setTimeout(()=>document.getElementById('ginp')?.focus(),50);
   } else if(mode==='speak'){
     document.getElementById('sword').textContent=e.en;
@@ -629,12 +650,15 @@ function reveal(){
   document.getElementById('cans').style.display='block';
   document.getElementById('cctl1').style.display='none';
   document.getElementById('cctl2').style.display='flex';
+  // shrink the question, enlarge answer
+  document.getElementById('cword').style.fontSize='14px';
+  document.getElementById('cword').style.color='rgba(255,255,255,0.5)';
   const ex=document.getElementById('cexample');
   const sentence=ex.dataset.ex||'';
   const word=ex.dataset.word||'';
   if(sentence){
     const highlighted=highlightWord(sentence,word);
-    ex.innerHTML='💬 <span style="color:#d0d0d0">'+highlighted+'</span>';
+    ex.innerHTML='💬 <span style="color:#f0f0f0">'+highlighted+'</span>';
     ex.style.display='block';
   }
 }
@@ -650,10 +674,18 @@ function nextC(){if(isRec)stopRec();if(isRecInline)stopRecInline();if(isRecBlock
 function checkG(){
   const inp=document.getElementById('ginp');if(!inp)return;
   const val=inp.value.trim().toLowerCase();
-  const e=queue[qi%queue.length];const target=e.en.toLowerCase();
+  const e=queue[qi%queue.length];
   const fb=document.getElementById('gfb');
-  if(val===target||target.includes(val)&&val.length>2){fb.style.color='#27500A';fb.textContent='✓ Richtig! '+e.en;e.c=(e.c||0)+1;stats.c++;sv();}
-  else{fb.style.color='#791F1F';fb.textContent='✗ Lösung: '+e.en;e.w=(e.w||0)+1;stats.w++;sv();}
+  const storedAnswer=fb.dataset.answer||e.en;
+  const target=storedAnswer.toLowerCase();
+  const base=e.en.replace(/^to\s+/i,'').toLowerCase();
+  if(val===target||val===base||target.includes(val)&&val.length>2){
+    fb.style.color='#27500A';fb.textContent='✓ Richtig! '+storedAnswer;
+    e.c=(e.c||0)+1;stats.c++;sv();
+  } else {
+    fb.style.color='#791F1F';fb.textContent='✗ Lösung: '+storedAnswer;
+    e.w=(e.w||0)+1;stats.w++;sv();
+  }
 }
 
 function tts(word,lang){if(!word||!window.speechSynthesis)return;window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(word);u.lang=lang;window.speechSynthesis.speak(u);}
