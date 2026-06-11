@@ -91,8 +91,11 @@ button:hover{background:#3a3a50}
 <div id="tlearn" class="sec active">
   <div id="empty-msg" class="empty" style="display:none">📖 Noch keine Einträge — füge zuerst Vokabeln hinzu!</div>
   <div id="quiz-wrap">
-    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:none" id="filter-cats">
-      <button class="fcat-btn active" data-cat="" onclick="filterCat(this)">Alle</button>
+    <div style="position:relative;margin-bottom:10px">
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch" id="filter-cats">
+        <button class="fcat-btn active" data-cat="" onclick="filterCat(this)">Alle</button>
+      </div>
+      <div style="position:absolute;right:0;top:0;bottom:4px;width:40px;background:linear-gradient(to right,transparent,#1e1e2e);pointer-events:none"></div>
     </div>
     <div class="frow" style="margin-bottom:10px">
       <select id="fdir" onchange="startQ()">
