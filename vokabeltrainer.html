@@ -114,7 +114,7 @@ button:hover{background:#3a3a50}
         <div class="qword" id="cword"></div>
         <button class="tts" id="ctts" onclick="tts(this.dataset.w,'en-US')" style="display:none">🔊 anhören</button>
         <div class="qans" id="cans" style="display:none"></div>
-        <div id="cexample" style="display:none;margin-top:10px;padding:10px 14px;background:#f0f6ff;border-radius:8px;font-size:13px;color:#1a1a1a;line-height:1.6;text-align:left;border-left:3px solid #378ADD;max-width:100%"></div>
+        <div id="cexample" style="display:none;margin-top:10px;padding:10px 14px;background:#1a2a3a;border-radius:8px;font-size:13px;color:#ffffff;line-height:1.6;text-align:left;border-left:3px solid #378ADD;max-width:100%"></div>
       </div>
       <!-- inline audio challenge (shown instead of normal card for vocab) -->
       <div class="qcard" id="qcard-audio" style="display:none;border:2px solid #B5D4F4">
@@ -660,7 +660,7 @@ function reveal(){
   const word=ex.dataset.word||'';
   if(sentence){
     const highlighted=highlightWord(sentence,word);
-    ex.innerHTML='💬 <span style="color:#f0f0f0">'+highlighted+'</span>';
+    ex.innerHTML='💬 <span style="color:#ffffff">'+highlighted+'</span>';
     ex.style.display='block';
   }
 }
