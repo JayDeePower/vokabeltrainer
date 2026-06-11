@@ -274,12 +274,14 @@ button:hover{background:#3a3a50}
   <div id="import-results" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <span style="font-size:14px;font-weight:600;color:#fff" id="import-count"></span>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
         <button onclick="selectAllImport(true)" style="font-size:12px;padding:5px 10px">Alle</button>
         <button onclick="selectAllImport(false)" style="font-size:12px;padding:5px 10px">Keine</button>
         <button onclick="confirmImport()" style="font-size:13px;padding:7px 16px;background:#1D9E75;color:#fff;border-color:#1D9E75;font-weight:600">✓ Übernehmen</button>
+        <button onclick="confirmImportReplace()" style="font-size:13px;padding:7px 16px;background:#791F1F;color:#fff;border-color:#791F1F;font-weight:600">🔄 Alle ersetzen</button>
       </div>
     </div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:8px">„Alle ersetzen" löscht bestehende Einträge und importiert neu — Lernfortschritt geht verloren.</div>
     <div id="import-list" style="display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto"></div>
   </div>
 </div>
@@ -817,10 +819,29 @@ function selectAllImport(val){
   renderImportResults();
 }
 
-function confirmImport(){
+function confirmImportReplace(){
   const toAdd=importCandidates.filter(i=>i._sel);
   if(!toAdd.length){alert('Keine Einträge ausgewählt.');return;}
-  let added=0,skipped=0;
+  if(!confirm('Alle '+entries.length+' bestehenden Einträge löschen und durch die '+toAdd.length+' neuen ersetzen?\n\nLernfortschritt geht verloren!'))return;
+  entries=toAdd.map(item=>({
+    id:Date.now()+Math.random(),
+    en:item.en,de:item.de,
+    cat:item.cat||'Sonstiges',
+    note:item.note||'',
+    type:item.type||'vocab',
+    gap:item.gap||'',
+    example:item.example||'',
+    c:0,w:0
+  }));
+  sv();
+  alert(entries.length+' Einträge ersetzt!');
+  document.getElementById('import-results').style.display='none';
+  document.getElementById('json-import-input').value='';
+  importCandidates=[];
+  showTab('learn');
+}
+function confirmImport(){
+  const toAdd=importCandidates.filter(i=>i._sel);
   toAdd.forEach(item=>{
     if(entries.find(e=>e.en.toLowerCase()===item.en.toLowerCase())){skipped++;return;}
     entries.push({
