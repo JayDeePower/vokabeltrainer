@@ -91,11 +91,11 @@ button:hover{background:#3a3a50}
 <div id="tlearn" class="sec active">
   <div id="empty-msg" class="empty" style="display:none">📖 Noch keine Einträge — füge zuerst Vokabeln hinzu!</div>
   <div id="quiz-wrap">
-    <div style="position:relative;margin-bottom:10px">
-      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch" id="filter-cats">
+    <div style="position:relative;margin-bottom:10px;overflow:hidden">
+      <div style="display:flex;flex-wrap:nowrap;gap:6px;overflow-x:scroll;padding-bottom:4px;-webkit-overflow-scrolling:touch" id="filter-cats">
         <button class="fcat-btn active" data-cat="" onclick="filterCat(this)">Alle</button>
       </div>
-      <div style="position:absolute;right:0;top:0;bottom:4px;width:40px;background:linear-gradient(to right,transparent,#1e1e2e);pointer-events:none"></div>
+      <div style="position:absolute;right:0;top:0;bottom:0;width:40px;background:linear-gradient(to right,transparent,#1e1e2e);pointer-events:none"></div>
     </div>
     <div class="frow" style="margin-bottom:10px">
       <select id="fdir" onchange="startQ()">
@@ -110,6 +110,8 @@ button:hover{background:#3a3a50}
       <button class="mbtn" id="mg" onclick="setM('gap')">✏️ Lückentext</button>
       <button class="mbtn" id="ms" onclick="setM('speak')">🎤 Sprechen</button>
       <button class="mbtn" id="mb" onclick="setM('block')">🎙️ Satz-Block</button>
+      <button class="mbtn" id="mt" onclick="setM('train')">🎯 Training</button>
+      <button class="mbtn" id="mm" onclick="setM('multi')">🔤 Multiple Choice</button>
     </div>
     <div id="mcard">
       <div class="qcard" id="qcard-main">
@@ -183,6 +185,47 @@ button:hover{background:#3a3a50}
         <button onclick="rateBlock(true)" class="bok">✓ Gut genug</button>
       </div>
     </div>
+
+    <!-- TRAINING MODE -->
+    <div id="mtrain" style="display:none">
+      <div style="background:rgba(255,200,0,0.1);border:1px solid rgba(255,200,0,0.3);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:rgba(255,255,255,0.8);display:flex;justify-content:space-between;align-items:center">
+        <span>🎯 <strong>Training</strong> — lerne bis alle richtig sind</span>
+        <span id="train-progress" style="font-weight:700;color:#FFD700"></span>
+      </div>
+      <div class="qcard">
+        <div class="qhint" id="train-hint"></div>
+        <div class="qword" id="train-word"></div>
+        <button class="tts" id="train-tts" onclick="tts(this.dataset.w,'en-US')" style="display:none">🔊 anhören</button>
+        <div class="qans" id="train-ans" style="display:none"></div>
+        <div id="train-example" style="display:none;margin-top:10px;padding:10px 14px;background:#163a5f;border-radius:8px;font-size:14px;color:#fff;line-height:1.7;text-align:left;border-left:3px solid #4aa8ff;max-width:100%"></div>
+      </div>
+      <div class="qctl" id="train-ctl1"><button onclick="revealTrain()" style="padding:10px 28px;font-size:15px">Aufdecken</button></div>
+      <div class="qctl" id="train-ctl2" style="display:none">
+        <button class="bnok" onclick="rateTrain(false)">✗ Falsch</button>
+        <button class="bok" onclick="rateTrain(true)">✓ Richtig</button>
+      </div>
+      <div style="text-align:center;margin-top:8px">
+        <button onclick="startTrain()" style="font-size:12px;color:rgba(255,255,255,0.4);background:none;border:none;cursor:pointer">↺ Neue Runde</button>
+      </div>
+    </div>
+
+    <!-- MULTIPLE CHOICE MODE -->
+    <div id="mmulti" style="display:none">
+      <div style="background:rgba(100,0,200,0.15);border:1px solid rgba(150,100,255,0.3);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:rgba(255,255,255,0.8)">
+        🔤 <strong>Multiple Choice</strong> — wähle die richtige Übersetzung
+      </div>
+      <div class="qcard" style="min-height:120px">
+        <div class="qhint">Welche Übersetzung ist richtig?</div>
+        <div class="qword" id="multi-word"></div>
+        <button class="tts" id="multi-tts" onclick="tts(this.dataset.w,'en-US')" style="display:none">🔊 anhören</button>
+      </div>
+      <div id="multi-options" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
+      <div id="multi-feedback" style="text-align:center;font-size:14px;min-height:20px;margin-bottom:8px"></div>
+      <div style="text-align:center">
+        <button onclick="nextMulti()" id="multi-next" style="display:none;padding:10px 28px;font-size:14px">Weiter →</button>
+      </div>
+    </div>
+
     <div class="pbar"><div class="pfill" id="pf" style="width:0%"></div></div>
     <div style="font-size:12px;color:#888;text-align:center;margin-top:2px" id="plabel"></div>
   </div>
@@ -469,17 +512,21 @@ function showTab(t){
 
 function setM(m){
   mode=m;
-  ['card','gap','speak','block'].forEach(x=>{
-    const btn=document.getElementById('m'+x[0]);
+  ['card','gap','speak','block','train','multi'].forEach(x=>{
+    const btn=document.getElementById('m'+x[0]+(x==='train'?'t':x==='multi'?'m':''));
     if(btn)btn.classList.toggle('active',x===m);
     const panel=document.getElementById('m'+x);
     if(panel)panel.style.display=x===m?'block':'none';
   });
-  nextC();
+  if(m==='train')startTrain();
+  else if(m==='multi')startMulti();
+  else nextC();
 }
 
 function startQ(){
   updCatFilterBar();
+  if(mode==='train'){startTrain();return;}
+  if(mode==='multi'){startMulti();return;}
   const cat=activeCat;
   let pool=entries.filter(e=>!cat||e.cat===cat);
   if(mode==='gap')pool=pool.filter(e=>e.type==='gap'&&e.gap);
@@ -650,6 +697,143 @@ function startRecBlock(){
   recBlock.start();
 }
 function stopRecBlock(){if(recBlock){try{recBlock.stop();}catch(e){}}isRecBlock=false;document.getElementById('bmicbtn').classList.remove('rec');}
+
+/* ---- TRAINING MODE ---- */
+let trainQueue=[], trainIdx=0, trainDone=new Set();
+
+function startTrain(){
+  const cat=activeCat;
+  let pool=[...entries].filter(e=>!cat||e.cat===cat);
+  if(!pool.length){alert('Keine Einträge vorhanden.');return;}
+  // pick 15-20 entries, prefer same category context
+  pool=pool.sort(()=>Math.random()-0.5).slice(0,18);
+  trainQueue=pool.map(e=>({...e,_correct:false}));
+  trainDone=new Set();
+  trainIdx=0;
+  showTrainCard();
+}
+
+function showTrainCard(){
+  // find next not yet correct
+  const remaining=trainQueue.filter(e=>!e._correct);
+  if(!remaining.length){
+    // all correct!
+    document.getElementById('train-word').textContent='🎉 Alle richtig!';
+    document.getElementById('train-hint').textContent='Runde abgeschlossen!';
+    document.getElementById('train-ans').style.display='none';
+    document.getElementById('train-example').style.display='none';
+    document.getElementById('train-ctl1').style.display='none';
+    document.getElementById('train-ctl2').style.display='none';
+    document.getElementById('train-progress').textContent='✓ '+trainQueue.length+'/'+trainQueue.length;
+    return;
+  }
+  // pick random from remaining
+  const e=remaining[Math.floor(Math.random()*remaining.length)];
+  trainIdx=trainQueue.indexOf(e);
+  const d=Math.random()>0.5?'de':'en';
+  document.getElementById('train-hint').textContent=d==='de'?'Deutsch → Englisch':'Englisch → Deutsch';
+  document.getElementById('train-word').textContent=d==='de'?e.de:e.en;
+  document.getElementById('train-ans').style.display='none';
+  document.getElementById('train-ans').textContent=(d==='de'?e.en:e.de);
+  document.getElementById('train-example').style.display='none';
+  document.getElementById('train-ctl1').style.display='flex';
+  document.getElementById('train-ctl2').style.display='none';
+  const tts=document.getElementById('train-tts');
+  if(d==='en'){tts.style.display='inline-flex';tts.dataset.w=e.en;}else tts.style.display='none';
+  const done=trainQueue.filter(e=>e._correct).length;
+  document.getElementById('train-progress').textContent=done+'/'+trainQueue.length+' ✓';
+  document.getElementById('train-example').dataset.ex=e.example||'';
+  document.getElementById('train-example').dataset.word=e.en||'';
+}
+
+function revealTrain(){
+  document.getElementById('train-ans').style.display='block';
+  document.getElementById('train-ctl1').style.display='none';
+  document.getElementById('train-ctl2').style.display='flex';
+  const ex=document.getElementById('train-example');
+  if(ex.dataset.ex){
+    ex.innerHTML='💬 <span style="color:#fff">'+highlightWord(ex.dataset.ex,ex.dataset.word)+'</span>';
+    ex.style.display='block';
+  }
+}
+
+function rateTrain(correct){
+  const e=trainQueue[trainIdx];
+  if(correct){
+    e._correct=true;
+    e.c=(e.c||0)+1;stats.c++;
+  } else {
+    e._correct=false;
+    e.w=(e.w||0)+1;stats.w++;
+  }
+  sv();
+  showTrainCard();
+}
+
+/* ---- MULTIPLE CHOICE MODE ---- */
+let multiQueue=[], multiIdx=0, multiCorrectIdx=0;
+
+function startMulti(){
+  const cat=activeCat;
+  let pool=[...entries].filter(e=>!cat||e.cat===cat);
+  if(pool.length<4){alert('Mindestens 4 Einträge benötigt.');return;}
+  multiQueue=[...pool].sort(()=>Math.random()-0.5);
+  multiIdx=0;
+  showMultiCard();
+}
+
+function showMultiCard(){
+  if(multiIdx>=multiQueue.length){multiIdx=0;multiQueue.sort(()=>Math.random()-0.5);}
+  const e=multiQueue[multiIdx];
+  const d=Math.random()>0.5?'de':'en';
+  document.getElementById('multi-word').textContent=d==='de'?e.de:e.en;
+  const tts=document.getElementById('multi-tts');
+  if(d==='en'){tts.style.display='inline-flex';tts.dataset.w=e.en;}else tts.style.display='none';
+  // correct answer
+  const correct=d==='de'?e.en:e.de;
+  // 3 wrong answers from pool
+  const others=[...multiQueue].filter((_,i)=>i!==multiIdx).sort(()=>Math.random()-0.5).slice(0,3).map(o=>d==='de'?o.en:o.de);
+  // combine and shuffle
+  const options=[correct,...others].sort(()=>Math.random()-0.5);
+  multiCorrectIdx=options.indexOf(correct);
+  document.getElementById('multi-feedback').textContent='';
+  document.getElementById('multi-next').style.display='none';
+  const optDiv=document.getElementById('multi-options');
+  optDiv.innerHTML=options.map((opt,i)=>`
+    <button onclick="checkMulti(${i})" style="padding:12px 10px;font-size:13px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:#fff;cursor:pointer;text-align:left;line-height:1.4;font-family:inherit" id="mopt_${i}">${opt}</button>
+  `).join('');
+  const done=multiIdx;
+  document.getElementById('pf').style.width=Math.round(done/multiQueue.length*100)+'%';
+  document.getElementById('plabel').textContent=(done+1)+' / '+multiQueue.length;
+}
+
+function checkMulti(chosen){
+  // disable all buttons
+  for(let i=0;i<4;i++){
+    const btn=document.getElementById('mopt_'+i);
+    if(!btn)continue;
+    btn.disabled=true;
+    if(i===multiCorrectIdx){btn.style.background='#1D9E75';btn.style.borderColor='#1D9E75';}
+    else if(i===chosen&&chosen!==multiCorrectIdx){btn.style.background='#791F1F';btn.style.borderColor='#791F1F';}
+  }
+  const e=multiQueue[multiIdx];
+  if(chosen===multiCorrectIdx){
+    document.getElementById('multi-feedback').style.color='#1D9E75';
+    document.getElementById('multi-feedback').textContent='✓ Richtig!';
+    e.c=(e.c||0)+1;stats.c++;
+  } else {
+    document.getElementById('multi-feedback').style.color='#F7C1C1';
+    document.getElementById('multi-feedback').textContent='✗ Falsch';
+    e.w=(e.w||0)+1;stats.w++;
+  }
+  sv();
+  document.getElementById('multi-next').style.display='inline-block';
+}
+
+function nextMulti(){
+  multiIdx++;
+  showMultiCard();
+}
 
 function reveal(){
   document.getElementById('cans').style.display='block';
